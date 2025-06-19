@@ -1,36 +1,34 @@
-# main.py
-
-import asyncio
 from aiogram import Bot, Dispatcher
 from aiogram.fsm.storage.memory import MemoryStorage
+from aiogram.types import ParseMode
 from aiogram.enums import ParseMode
+import logging
+import os
+import asyncio
 
-from config import BOT_TOKEN, ADMINS
-from handlers.user import start, donate, referral, download_clients, free_servers, contact_admin, account_status
-from handlers.admin import panel, add_server, edit_server, broadcast, stats, manage_admins, manage_clients
+from handlers import admin_add_server, admin_edit_server, admin_manage_admins, admin_channels, user_get_servers, account, referral
+from database.db import init_db
+
+logging.basicConfig(level=logging.INFO)
+
+async def on_startup(bot: Bot):
+    # تنظیمات اولیه دیتابیس
+    init_db()
 
 async def main():
-    bot = Bot(token=BOT_TOKEN, parse_mode=ParseMode.HTML)
+    bot = Bot(token=os.getenv("BOT_TOKEN"), parse_mode=ParseMode.HTML)
     dp = Dispatcher(storage=MemoryStorage())
 
-    # ثبت هندلرهای کاربران
-    start.register(dp)
-    donate.register(dp)
-    referral.register(dp)
-    download_clients.register(dp)
-    free_servers.register(dp)
-    contact_admin.register(dp)
-    account_status.register(dp)
+    # ثبت روترها
+    dp.include_router(admin_add_server.router)
+    dp.include_router(admin_edit_server.router)
+    dp.include_router(admin_manage_admins.router)
+    dp.include_router(admin_channels.router)
+    dp.include_router(user_get_servers.router)
+    dp.include_router(account.router)
+    dp.include_router(referral.router)
 
-    # ثبت هندلرهای ادمین
-    panel.register(dp)
-    add_server.register(dp)
-    edit_server.register(dp)
-    broadcast.register(dp)
-    stats.register(dp)
-    manage_admins.register(dp)
-    manage_clients.register(dp)
-
+    # اجرای ربات
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
