@@ -1,33 +1,28 @@
-import logging
-import os
-from aiogram import Bot, Dispatcher
-from aiogram.enums import ParseMode
-from aiogram.fsm.storage.memory import MemoryStorage
+from aiogram import Bot, Dispatcher, types
+from aiogram.types import Message
 from aiogram.utils import executor
-from database.db import init_db
-from handlers import start, admin_add_server, admin_edit_server, admin_manage_admins, admin_channels, user_get_servers, account, referral
+from aiogram.contrib.middlewares.logging import LoggingMiddleware
+import logging
+from start import on_start
+from handlers.admin_panel import register_admin_handlers
+from handlers.user_menu import register_user_handlers
+from database import db
+
+API_TOKEN = 'توکن_ربات_اینجا'
 
 logging.basicConfig(level=logging.INFO)
 
-async def on_startup(bot: Bot):
-    init_db()
+bot = Bot(token=API_TOKEN)
+dp = Dispatcher(bot)
+dp.middleware.setup(LoggingMiddleware())
 
-async def main():
-    bot = Bot(token=os.getenv("BOT_TOKEN"), parse_mode=ParseMode.HTML)
-    dp = Dispatcher(storage=MemoryStorage())
+register_admin_handlers(dp)
+register_user_handlers(dp)
 
-    # ثبت هندلرها
-    dp.include_router(start.router)
-    dp.include_router(admin_add_server.router)
-    dp.include_router(admin_edit_server.router)
-    dp.include_router(admin_manage_admins.router)
-    dp.include_router(admin_channels.router)
-    dp.include_router(user_get_servers.router)
-    dp.include_router(account.router)
-    dp.include_router(referral.router)
+@dp.message_handler(commands=['start'])
+async def cmd_start(message: Message):
+    await on_start(message, bot)
 
-    # اجرای ربات
-    await dp.start_polling(bot)
-
-if __name__ == "__main__":
-    executor.start_polling(main(), skip_updates=True)
+if __name__ == '__main__':
+    from database import db  # ساخت دیتابیس در شروع
+    executor.start_polling(dp, skip_updates=True)
