@@ -1,0 +1,57 @@
+from aiogram import Router, F
+from aiogram.types import Message, InlineKeyboardButton, InlineKeyboardMarkup
+from aiogram.fsm.context import FSMContext
+from aiogram.fsm.state import StatesGroup, State
+from database.db import save_user_config
+
+router = Router()
+
+class ConfigSubmitState(StatesGroup):
+    waiting_for_config = State()
+    waiting_for_protocol = State()
+    waiting_for_country = State()
+
+@router.message(F.text == "➕ ارسال کانفیگ")
+async def start_submit(message: Message, state: FSMContext):
+    await message.answer("📝 لطفاً کانفیگ خود را ارسال کنید (متن یا فایل):")
+    await state.set_state(ConfigSubmitState.waiting_for_config)
+
+@router.message(ConfigSubmitState.waiting_for_config)
+async def get_config(message: Message, state: FSMContext):
+    config_data = message.text if message.text else None
+    if not config_data:
+        await message.answer("❌ فقط متن پشتیبانی می‌شود فعلاً.")
+        return
+    await state.update_data(config=config_data)
+    # انتخاب پروتکل
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="Vmess", callback_data="proto_vm"), InlineKeyboardButton(text="Vless", callback_data="proto_vl")],
+        [InlineKeyboardButton(text="SS", callback_data="proto_ss"), InlineKeyboardButton(text="Hysteria", callback_data="proto_hy")]
+    ])
+    await message.answer("🔐 پروتکل کانفیگ رو انتخاب کن:", reply_markup=kb)
+    await state.set_state(ConfigSubmitState.waiting_for_protocol)
+
+@router.callback_query(F.data.startswith("proto_"))
+async def protocol_selected(callback, state: FSMContext):
+    protocol = callback.data.split("_")[1]
+    await state.update_data(protocol=protocol)
+    await callback.message.edit_text("🌍 کشور مربوط به این کانفیگ رو انتخاب کن:")
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="🇩🇪 آلمان", callback_data="ctry_de"), InlineKeyboardButton(text="🇺🇸 آمریکا", callback_data="ctry_us")],
+        [InlineKeyboardButton(text="🇫🇷 فرانسه", callback_data="ctry_fr"), InlineKeyboardButton(text="🇷🇺 روسیه", callback_data="ctry_ru")]
+    ])
+    await callback.message.answer("👇 انتخاب کن:", reply_markup=kb)
+    await state.set_state(ConfigSubmitState.waiting_for_country)
+
+@router.callback_query(F.data.startswith("ctry_"))
+async def country_selected(callback, state: FSMContext):
+    country = callback.data.split("_")[1]
+    data = await state.get_data()
+    save_user_config(
+        user_id=callback.from_user.id,
+        config=data["config"],
+        protocol=data["protocol"],
+        country=country
+    )
+    await callback.message.edit_text("✅ کانفیگ شما با موفقیت ثبت شد. متشکریم!")
+    await state.clear()
