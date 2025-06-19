@@ -1,21 +1,14 @@
-from database.db import get_user_info
+from aiogram import types
+from aiogram.dispatcher import Dispatcher
+from database import db
 
-@dp.message(F.text == "🛠️ پنل مدیریت")
-async def admin_panel(message: Message):
-    user_id = message.from_user.id
-    user_info = get_user_info(user_id)
-    
-    if not user_info or user_info["role"] != "admin":
-        await message.answer("🚫 فقط ادمین‌ها به این بخش دسترسی دارن.")
+ADMIN_IDS = [123456789]  # آیدی ادمین‌ها
+
+async def admin_panel(message: types.Message):
+    if message.from_user.id not in ADMIN_IDS:
         return
-    
-    kb = ReplyKeyboardMarkup(resize_keyboard=True, keyboard=[
-        [KeyboardButton("📊 آمار ربات"), KeyboardButton("📬 پیام همگانی")],
-        [KeyboardButton("🧑‍💼 مدیریت ادمین‌ها"), KeyboardButton("🔗 تنظیم کانال عضویت")],
-        [KeyboardButton("📥 مدیریت سرورها")],
-        [KeyboardButton("🎨 تنظیم پیام‌ها"), KeyboardButton("📲 مدیریت کلاینت‌ها")],
-        [KeyboardButton("⏱️ زمان‌بندی ارسال سرورها")],
-        [KeyboardButton("🔙 بازگشت")]
-    ])
-    
-    await message.answer("🛠️ پنل مدیریت فعال شد:", reply_markup=kb)
+    user_count = db.get_user_count()
+    await message.reply(f"🔧 پنل مدیریت\n👥 تعداد کل کاربران: {user_count}")
+
+def register_admin_handlers(dp: Dispatcher):
+    dp.register_message_handler(admin_panel, lambda m: m.text == "🛠 پنل مدیریت")
