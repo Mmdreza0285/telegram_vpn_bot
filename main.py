@@ -1,7 +1,7 @@
 import logging
 import os
 from aiogram import Bot, Dispatcher
-from aiogram.types import ParseMode
+from aiogram.enums import ParseMode
 from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.utils import executor
 from database.db import init_db
