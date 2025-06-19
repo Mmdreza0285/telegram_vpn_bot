@@ -1,66 +1,70 @@
-# database/db.py
-
 import sqlite3
 
 conn = sqlite3.connect("bot.db")
 cursor = conn.cursor()
 
-# جدول کاربران
-cursor.execute("""
-CREATE TABLE IF NOT EXISTS users (
-    user_id INTEGER PRIMARY KEY,
-    username TEXT,
-    full_name TEXT,
-    referral_by INTEGER,
-    join_date TEXT
-)
-""")
+# جدول‌های مورد نیاز
+def init_db():
+    cursor.execute('''
+    CREATE TABLE IF NOT EXISTS users (
+        user_id INTEGER PRIMARY KEY,
+        username TEXT,
+        full_name TEXT,
+        ref_id INTEGER
+    )''')
+    
+    cursor.execute('''
+    CREATE TABLE IF NOT EXISTS servers (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        protocol TEXT,
+        country TEXT,
+        name TEXT,
+        config TEXT,
+        added_by INTEGER
+    )''')
 
-# جدول کانفیگ‌ها (برای اهدایی)
-cursor.execute("""
-CREATE TABLE IF NOT EXISTS configs (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id INTEGER,
-    protocol TEXT,
-    country TEXT,
-    config_data TEXT,
-    created_at TEXT
-)
-""")
+    cursor.execute('''
+    CREATE TABLE IF NOT EXISTS required_channels (
+        channel_username TEXT PRIMARY KEY
+    )''')
 
-# جدول سرورهای ادمین
-cursor.execute("""
-CREATE TABLE IF NOT EXISTS servers (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    protocol TEXT,
-    country TEXT,
-    name TEXT,
-    config_data TEXT,
-    active INTEGER DEFAULT 1
-)
-""")
+    cursor.execute('''
+    CREATE TABLE IF NOT EXISTS user_configs (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER,
+        config TEXT,
+        protocol TEXT,
+        country TEXT
+    )''')
 
-# جدول رفرال‌ها
-cursor.execute("""
-CREATE TABLE IF NOT EXISTS referrals (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    referrer_id INTEGER,
-    referred_id INTEGER,
-    date TEXT
-)
-""")
+    cursor.execute('''
+    CREATE TABLE IF NOT EXISTS referrals (
+        user_id INTEGER PRIMARY KEY,
+        referrer_id INTEGER
+    )''')
 
-conn.commit()
+    conn.commit()
 
+# سایر توابع مورد نیاز
+def add_server(protocol, country, name, config, added_by):
+    cursor.execute("INSERT INTO servers (protocol, country, name, config, added_by) VALUES (?, ?, ?, ?, ?)",
+                   (protocol, country, name, config, added_by))
+    conn.commit()
 
-# ---------------------------- 📌 توابع ----------------------------
+def get_all_servers():
+    cursor.execute("SELECT id, protocol, country, name FROM servers")
+    return cursor.fetchall()
 
-def create_user_if_not_exists(user_id: int, username="", full_name="", referral_by=None):
-    cursor.execute("SELECT * FROM users WHERE user_id = ?", (user_id,))
-    if not cursor.fetchone():
-        from datetime import datetime
-        cursor.execute("""
-            INSERT INTO users (user_id, username, full_name, referral_by, join_date)
-            VALUES (?, ?, ?, ?, ?)
-        """, (user_id, username, full_name, referral_by, datetime.now().strftime("%Y-%m-%d %H:%M")))
-        conn.commit()
+def add_required_channel(channel_username):
+    cursor.execute("INSERT INTO required_channels (channel_username) VALUES (?)", (channel_username,))
+    conn.commit()
+
+def delete_required_channel(channel_username):
+    cursor.execute("DELETE FROM required_channels WHERE channel_username = ?", (channel_username,))
+    conn.commit()
+
+def get_required_channels():
+    cursor.execute("SELECT channel_username FROM required_channels")
+    return [row[0] for row in cursor.fetchall()]
+
+# سایر توابع دیتابیس مورد نیاز مشابه
