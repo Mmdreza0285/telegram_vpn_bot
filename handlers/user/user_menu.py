@@ -1,15 +1,10 @@
-from aiogram import Router
-from aiogram.types import Message, ReplyKeyboardMarkup, KeyboardButton
-from aiogram.filters import CommandStart
+from aiogram import types
+from aiogram.dispatcher import Dispatcher
+from database import db
 
-router = Router()
+async def handle_account_status(message: types.Message):
+    count = db.get_referral_count(message.from_user.id)
+    await message.reply(f"📊 شما تا الان {count} نفر را به ربات دعوت کرده‌اید!")
 
-@router.message(CommandStart())
-async def user_start(msg: Message):
-    keyboard = ReplyKeyboardMarkup(keyboard=[
-        [KeyboardButton(text="🎁 دریافت سرور رایگان")],
-        [KeyboardButton(text="🎯 ارسال کانفیگ شخصی")],
-        [KeyboardButton(text="👥 رفرال من"), KeyboardButton(text="📊 وضعیت حساب")],
-        [KeyboardButton(text="🧩 لیست کلاینت ها"), KeyboardButton(text="📞 ارتباط با پشتیبانی")]
-    ], resize_keyboard=True)
-    await msg.answer("به منوی اصلی خوش آمدید!", reply_markup=keyboard)
+def register_user_handlers(dp: Dispatcher):
+    dp.register_message_handler(handle_account_status, lambda m: m.text == "📈 وضعیت اکانت")
