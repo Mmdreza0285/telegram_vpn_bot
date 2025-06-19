@@ -1,10 +1,15 @@
-from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
+from aiogram import Router
+from aiogram.types import Message, ReplyKeyboardMarkup, KeyboardButton
+from aiogram.filters import CommandStart
 
-def user_main_menu():
-    buttons = [
-        [KeyboardButton("📡 دریافت کانفیگ رایگان")],
-        [KeyboardButton("📤 اهدای کانفیگ"), KeyboardButton("🎁 رفرال")],
-        [KeyboardButton("📥 کلاینت‌ها"), KeyboardButton("📈 وضعیت حساب")],
-        [KeyboardButton("📬 ارتباط با پشتیبانی")]
-    ]
-    return ReplyKeyboardMarkup(keyboard=buttons, resize_keyboard=True)
+router = Router()
+
+@router.message(CommandStart())
+async def user_start(msg: Message):
+    keyboard = ReplyKeyboardMarkup(keyboard=[
+        [KeyboardButton(text="🎁 دریافت سرور رایگان")],
+        [KeyboardButton(text="🎯 ارسال کانفیگ شخصی")],
+        [KeyboardButton(text="👥 رفرال من"), KeyboardButton(text="📊 وضعیت حساب")],
+        [KeyboardButton(text="🧩 لیست کلاینت ها"), KeyboardButton(text="📞 ارتباط با پشتیبانی")]
+    ], resize_keyboard=True)
+    await msg.answer("به منوی اصلی خوش آمدید!", reply_markup=keyboard)
